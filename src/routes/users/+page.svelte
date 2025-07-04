@@ -4,12 +4,16 @@
 	let total = 0;
 	let page = 1;
 	let limit = 10;
+	let searchTerm = '';
 
 	async function loadUsers() {
 		const res = await fetch(`/api/users?page=${page}&limit=${limit}`);
 		if (res.ok) {
 			const data = await res.json();
-			users = data.users;
+			users = data.users.sort((a, b) => {
+				if (a.isAdmin === b.isAdmin) return 0;
+				return a.isAdmin ? -1 : 1;
+			});
 			total = data.total;
 			page = data.page;
 			limit = data.limit;
@@ -33,10 +37,24 @@
 			loadUsers();
 		}
 	}
+
+	// กรอง users ตาม searchTerm
+	$: filteredUsers = users.filter(u =>
+		u.username.toLowerCase().includes(searchTerm.toLowerCase())
+	);
 </script>
 
 <div class="space-y-6 p-6">
 	<h1 class="mb-4 text-xl font-semibold">Users</h1>
+
+	<div class="mb-4 flex gap-2">
+		<input
+			type="text"
+			placeholder="ค้นหา Username..."
+			bind:value={searchTerm}
+			class="w-64 rounded border px-3 py-2"
+		/>
+	</div>
 
 	<table class="mb-4 min-w-full rounded bg-white shadow">
 		<thead>
@@ -48,11 +66,22 @@
 			</tr>
 		</thead>
 		<tbody>
-			{#each users as u}
-				<tr>
-					<td class="border-b px-4 py-2">{u.username}</td>
+			{#each filteredUsers as u}
+				<tr class={u.isAdmin ? 'bg-blue-50' : ''}>
+					<td class="border-b px-4 py-2 flex items-center gap-2">
+						{#if u.isAdmin}
+							<span title="Admin">🛡️</span>
+						{:else}
+							<span title="User">👤</span>
+						{/if}
+						{u.username}
+					</td>
 					<td class="border-b px-4 py-2">{u.email}</td>
-					<td class="border-b px-4 py-2">{u.isAdmin ? 'Admin' : 'User'}</td>
+					<td class="border-b px-4 py-2">
+						<span class={u.isAdmin ? 'rounded bg-blue-200 px-2 py-1 text-xs font-semibold text-blue-900' : 'rounded bg-gray-200 px-2 py-1 text-xs font-semibold text-gray-700'}>
+							{u.isAdmin ? 'Admin' : 'User'}
+						</span>
+					</td>
 					<td class="border-b px-4 py-2">
 						{new Date(u.createdAt).toLocaleDateString('en-GB', {
 							day: '2-digit',
