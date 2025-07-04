@@ -23,6 +23,12 @@
         >Dashboard</a>
     </li>
     <li>
+      <a href="/orders"
+        class="block px-4 py-3 hover:bg-gray-700"
+        class:selected={$currentPath === '/orders'}
+        >Orders</a>
+    </li>
+    <li>
       <a href="/users"
         class="block px-4 py-3 hover:bg-gray-700"
         class:selected={$currentPath === '/users'}
