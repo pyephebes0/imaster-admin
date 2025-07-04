@@ -52,8 +52,14 @@
 				<tr>
 					<td class="border-b px-4 py-2">{u.username}</td>
 					<td class="border-b px-4 py-2">{u.email}</td>
-					<td class="border-b px-4 py-2">{u.isAdmin == 'true' ? 'Yes' : 'No'}</td>
-					<td class="border-b px-4 py-2">{new Date(u.createdAt).toLocaleDateString()}</td>
+					<td class="border-b px-4 py-2">{u.isAdmin ? 'Admin' : 'User'}</td>
+					<td class="border-b px-4 py-2">
+						{new Date(u.createdAt).toLocaleDateString('en-GB', {
+							day: '2-digit',
+							month: '2-digit',
+							year: 'numeric'
+						})}
+					</td>
 				</tr>
 			{/each}
 		</tbody>
