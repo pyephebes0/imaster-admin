@@ -5,6 +5,7 @@
 	let page = 1;
 	let limit = 10;
 	let searchTerm = '';
+	let newPassword = '';
 
 	// Modal state
 	let editingUser = null;
@@ -47,30 +48,31 @@
 	// กรอง users ตาม searchTerm
 	function editUser(user) {
 		editingUser = user;
-		formUsername = user.username;
-		formEmail = user.email;
-		formIsAdmin = user.isAdmin;
+		newPassword = '';
 	}
 
 	function closeModal() {
 		editingUser = null;
 	}
 
-	function saveChanges() {
-		console.log('Saving user:', {
-			...editingUser,
-			username: formUsername,
-			email: formEmail,
-			isAdmin: formIsAdmin
+	async function saveChanges() {
+		console.log('Updating password for user:', editingUser.username);
+		console.log('New Password:', newPassword);
+		const res = await fetch(`/api/users/${editingUser.id}`, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				username: formUsername,
+				email: formEmail,
+				isAdmin: formIsAdmin
+			})
 		});
-		// TODO: Call API to update user here
-
-		// Update in-memory list as example
-		editingUser.username = formUsername;
-		editingUser.email = formEmail;
-		editingUser.isAdmin = formIsAdmin;
-
-		closeModal();
+		if (res.ok) {
+			await loadUsers();
+			closeModal();
+		} else {
+			console.error('Failed to update user');
+		}
 	}
 </script>
 
@@ -158,3 +160,44 @@
 		</button>
 	</div>
 </div>
+
+{#if editingUser}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+		<div class="w-full max-w-md rounded bg-white p-6 shadow-lg">
+			<h2 class="mb-4 text-lg font-semibold">Change Password</h2>
+
+			<div class="mb-3">
+				<label class="block text-sm font-medium">Username</label>
+				<p class="rounded border bg-gray-100 px-3 py-2">{editingUser.username}</p>
+			</div>
+
+			<div class="mb-3">
+				<label class="block text-sm font-medium">Email</label>
+				<p class="rounded border bg-gray-100 px-3 py-2">{editingUser.email}</p>
+			</div>
+
+			<div class="mb-3">
+				<label class="block text-sm font-medium" for="newPassword">New Password</label>
+				<input
+					id="newPassword"
+					type="password"
+					bind:value={newPassword}
+					placeholder="Enter new password"
+					class="w-full rounded border px-3 py-2"
+				/>
+			</div>
+
+			<div class="mt-4 flex justify-end gap-2">
+				<button on:click={closeModal} class="rounded bg-gray-300 px-4 py-2">Cancel</button>
+				<button
+					on:click={saveChanges}
+					class="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+					disabled={newPassword.length < 6}
+					title="Password must be at least 6 characters"
+				>
+					Save
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
