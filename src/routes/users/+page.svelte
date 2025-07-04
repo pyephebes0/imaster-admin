@@ -9,9 +9,6 @@
 
 	// Modal state
 	let editingUser = null;
-	let formUsername = '';
-	let formEmail = '';
-	let formIsAdmin = false;
 
 	async function loadUsers() {
 		const res = await fetch(`/api/users?page=${page}&limit=${limit}`);
@@ -58,22 +55,43 @@
 	async function saveChanges() {
 		console.log('Updating password for user:', editingUser.username);
 		console.log('New Password:', newPassword);
-		const res = await fetch(`/api/users/${editingUser.id}`, {
+
+		const res = await fetch(`/api/users/${editingUser.id}/password`, {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
-				username: formUsername,
-				email: formEmail,
-				isAdmin: formIsAdmin
+				password: newPassword
 			})
 		});
+
 		if (res.ok) {
+			console.log('Password updated successfully');
 			await loadUsers();
 			closeModal();
 		} else {
-			console.error('Failed to update user');
+			console.error('Failed to update password');
 		}
 	}
+
+	async function deactivateUser(user) {
+		if (confirm(`Are you sure you want to deactivate ${user.username}?`)) {
+			console.log('Deactivating user:', user);
+			const res = await fetch(`/api/users/${user.id}/deactivate`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ active: false })
+			});
+			if (res.ok) {
+				await loadUsers();
+			} else {
+				console.error('Failed to deactivate user');
+			}
+		}
+	}
+
+	$: filteredUsers = (users || []).filter((u) =>
+		u.username.toLowerCase().includes(searchTerm.toLowerCase())
+	);
 </script>
 
 <div class="space-y-6 p-6">
@@ -91,6 +109,7 @@
 	<table class="mb-4 min-w-full rounded bg-white shadow">
 		<thead>
 			<tr>
+				<th class="border-b px-4 py-2">Status</th>
 				<th class="border-b px-4 py-2">Username</th>
 				<th class="border-b px-4 py-2">Email</th>
 				<th class="border-b px-4 py-2">Admin</th>
@@ -101,6 +120,15 @@
 		<tbody>
 			{#each filteredUsers as u}
 				<tr class={u.isAdmin ? 'bg-blue-50' : ''}>
+					<td class="border-b px-4 py-2">
+						<span
+							class={u.active
+								? 'rounded bg-green-200 px-2 py-1 text-xs font-semibold text-green-800'
+								: 'rounded bg-red-200 px-2 py-1 text-xs font-semibold text-red-800'}
+						>
+							{u.active ? 'Active' : 'Inactive'}
+						</span>
+					</td>
 					<td class="flex items-center gap-2 border-b px-4 py-2">
 						{#if u.isAdmin}
 							<span title="Admin">🛡️</span>
@@ -135,10 +163,10 @@
 								Edit
 							</button>
 							<button
-								class="rounded bg-red-500 px-2 py-1 text-xs text-white hover:bg-red-600"
-								on:click={() => deleteUser(u)}
+								class="rounded bg-yellow-500 px-2 py-1 text-xs text-white hover:bg-yellow-600"
+								on:click={() => deactivateUser(u)}
 							>
-								Delete
+								Deactivate
 							</button>
 						</div>
 					</td>
@@ -162,7 +190,7 @@
 </div>
 
 {#if editingUser}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+	<div class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
 		<div class="w-full max-w-md rounded bg-white p-6 shadow-lg">
 			<h2 class="mb-4 text-lg font-semibold">Change Password</h2>
 

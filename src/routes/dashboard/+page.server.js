@@ -1,8 +1,8 @@
 import { connectDB } from '$lib/db.js';
 import { User } from '$lib/models/User.js';
-import { verifyToken } from '$lib/auth.js'; // ฟังก์ชันตรวจสอบ JWT
+import { verifyToken } from '$lib/auth.js';
 
-export async function load({ fetch, cookies }) {
+export async function load({ cookies }) {
   await connectDB();
 
   const token = cookies.get('jwt');
@@ -13,7 +13,6 @@ export async function load({ fetch, cookies }) {
     };
   }
 
-  // ตรวจสอบ JWT และ decode payload
   const userId = verifyToken(token);
   if (!userId) {
     return {
@@ -22,7 +21,6 @@ export async function load({ fetch, cookies }) {
     };
   }
 
-  // หา user จาก id ใน payload
   const user = await User.findById(userId);
   if (!user || !user.isAdmin) {
     return {
@@ -31,26 +29,34 @@ export async function load({ fetch, cookies }) {
     };
   }
 
-  // ✅ ใช้ fetch จาก context
-  const res = await fetch('/api/users/today');
-  if (!res.ok) {
-    console.error('Failed to fetch /api/users/today:', res.status);
-    return {
-      user: {
-        username: user.username,
-        isAdmin: user.isAdmin
-      },
-      totalUsersToday: 0 // fallback
-    };
-  }
+  const totalQueueJobs = 12;  // หรือดึงจริงจาก DB
+  const totalOrdersToday = 35; // หรือดึงจริงจาก DB
 
-  const data = await res.json();
+  // คำนวน totalUsersToday เช่นนี้
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const chartAggregate = await User.aggregate([
+    {
+      $group: {
+        _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+        users: { $sum: 1 }
+      }
+    },
+    { $sort: { "_id": 1 } }
+  ]);
+  const chartData = chartAggregate.map(r => ({
+    date: r._id,
+    users: r.users
+  }));
+  const totalUsersToday = chartData.find(d => d.date === todayStr)?.users ?? 0;
 
   return {
     user: {
       username: user.username,
       isAdmin: user.isAdmin
     },
-    totalUsersToday: data.totalUsersToday
+    totalQueueJobs,
+    totalOrdersToday,
+    totalUsersToday,
+    chartData
   };
 }

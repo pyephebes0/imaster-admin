@@ -3,22 +3,24 @@
   import Chart from 'chart.js/auto';
 
   let canvas;
+  let chart;
 
-  // Mock Data
-  const data = [
-    { date: '2025-06-24', users: 12, orders: 7 },
-    { date: '2025-06-25', users: 18, orders: 10 },
-    { date: '2025-06-26', users: 14, orders: 5 },
-    { date: '2025-06-27', users: 20, orders: 12 },
-    { date: '2025-06-28', users: 25, orders: 15 },
-    { date: '2025-06-29', users: 22, orders: 9 },
-    { date: '2025-06-30', users: 30, orders: 20 }
-  ];
+  async function loadDataAndRenderChart() {
+    const res = await fetch('/api/stats/users');
+    if (!res.ok) {
+      console.error('Failed to fetch data');
+      return;
+    }
+    const data = await res.json();
 
-  onMount(() => {
     const ctx = canvas.getContext('2d');
 
-    new Chart(ctx, {
+    // ถ้ามี chart เดิม ให้ทำลายก่อน
+    if (chart) {
+      chart.destroy();
+    }
+
+    chart = new Chart(ctx, {
       type: 'line',
       data: {
         labels: data.map(d => d.date),
@@ -31,15 +33,6 @@
             tension: 0.3,
             fill: true,
             pointRadius: 4
-          },
-          {
-            label: 'Orders',
-            data: data.map(d => d.orders),
-            borderColor: '#10b981',
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-            tension: 0.3,
-            fill: true,
-            pointRadius: 4
           }
         ]
       },
@@ -47,13 +40,8 @@
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: {
-            position: 'top'
-          },
-          tooltip: {
-            mode: 'index',
-            intersect: false
-          }
+          legend: { position: 'top' },
+          tooltip: { mode: 'index', intersect: false }
         },
         interaction: {
           mode: 'nearest',
@@ -61,13 +49,13 @@
           intersect: false
         },
         scales: {
-          y: {
-            beginAtZero: true
-          }
+          y: { beginAtZero: true }
         }
       }
     });
-  });
+  }
+
+  onMount(loadDataAndRenderChart);
 </script>
 
 <div class="bg-white p-4 rounded shadow w-full h-[400px]">
